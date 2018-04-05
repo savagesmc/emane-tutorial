@@ -1,0 +1,65 @@
+from emane:latest
+
+RUN apt-get update && apt-get install -y \
+      bridge-utils \
+      build-essential \
+      cgroup-bin \
+      fakeroot \
+      fping \
+      gpsd \
+      gpsd-clients \
+      iperf \
+      iptables \
+      mgen \
+      multitail \
+      olsrd \
+      openssh-server \
+      python-pycurl \
+      python-lxml \
+      python-pmw \
+      python-stdeb \
+      python-tk
+
+WORKDIR /build
+
+RUN git clone https://github.com/lxc/lxc.git \
+   && cd lxc \
+   && git checkout lxc-1.0.11 \
+   && ./autogen.sh \
+   && ./configure --prefix=/usr \
+   && make -j `nproc` \
+   && make -j `nproc` install \
+   && cd ..
+
+RUN git clone https://github.com/adjacentlink/pynodestatviz \
+   && cd pynodestatviz \
+   && make -j `nproc` deb \
+   && dpkg -i deb_dist/pynodestatviz*.deb \
+   && cd ..
+
+RUN apt-get update && apt-get install -y \
+    libzmq3-dev \
+    libsqlite3-dev \
+    python-zmq
+
+RUN git clone https://github.com/adjacentlink/opentestpoint \
+   && cd opentestpoint \
+   && ./autogen.sh \
+   && ./configure \
+   && make -j `nproc` deb \
+   && dpkg -i .debbuild/*.deb \
+   && cd ..
+
+RUN git clone https://github.com/adjacentlink/opentestpoint-probe-emane \
+   && cd opentestpoint-probe-emane \
+   && ./autogen.sh \
+   && ./configure \
+   && make -j `nproc` deb \
+   && dpkg -i .debbuild/*.deb \
+   && cd ..
+
+COPY . /emane-tutorial
+WORKDIR /emane-tutorial
+RUN make
+
+CMD ["/usr/sbin/sshd", "-D"]
